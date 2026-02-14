@@ -14,4 +14,5 @@ This directory contains a comprehensive course on "MongoDB RAG AI with Voyage-AI
 
 ## Usage
 
-The primary file, `COURSE.md`, can be used with Marp to generate a slide presentation. The individual `module*.md` files can be used for reviewing or editing specific sections of the course. The course is intended for beginners and provides a step-by-step guide to building a RAG application with MongoDB and Voyage-AI. The Jupyter Notebooks in the `labs/` directory provide hands-on exercises to complement the theoretical content.
+1. set up `npm install -g @marp-team/marp-cli`
+2. run this command `marp -s ./`

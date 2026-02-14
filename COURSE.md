@@ -6,6 +6,16 @@ paginate: true
 backgroundColor: #89f0a5
 ---
 
+<style>
+{ 
+  font-size: 20px;
+  font-family: Tahoma;
+}
+section a {
+  color: #ff6600; /* Orange links */
+}
+</style>
+
 <!-- markdownlint-disable MD025 MD024 MD026 -->
 
 <!-- _class: lead -->
@@ -662,7 +672,7 @@ collection.aggregate([
 ```python
 response = vo.embed(
     texts=["Hello, world!", "Voyage AI is great."],
-    model="voyage-large-2", # or other models
+    model="voyage-3-large", # or other models
     input_type="document" # or "query" for search
 )
 embeddings = response.embeddings
@@ -688,7 +698,7 @@ texts_to_embed = [
 ]
 
 try:
-    result = vo.embed(texts=texts_to_embed, model="voyage-large-2")
+    result = vo.embed(texts=texts_to_embed, model="voyage-3-large")
     for i, embedding in enumerate(result.embeddings):
         print(f"Embedding for text '{texts_to_embed[i]}' has dimension {len(embedding)}")
 except Exception as e:
@@ -799,9 +809,12 @@ rerank_result = vo.rerank(query=query, documents=documents, model="rerank-lite-1
 3. **Create a `.env` file** (for API keys):
 
 ```python
-    VOYAGE_API_KEY="your_voyage_ai_key"
-    MONGO_URI="your_mongodb_atlas_connection_string"
-    OPENAI_API_KEY="your_openai_api_key" # If using OpenAI
+    VOYAGEAI_API_KEY="your_voyage_ai_key"
+    MONGODB_URI="your_mongodb_atlas_connection_string"
+    AZURE_OPENAI_API_KEY="your_azure_openai_api_key"
+    AZURE_OPENAI_ENDPOINT="your_azure_openai_endpoint"
+    AZURE_OPENAI_DEPLOYMENT_NAME="your_azure_openai_deployment_name"
+    AZURE_OPENAI_API_VERSION="your_azure_openai_api_version"
 ```
 
 ---
@@ -845,7 +858,7 @@ rerank_result = vo.rerank(query=query, documents=documents, model="rerank-lite-1
     - Select Python, version 3.6 or later.
     - Copy the connection string.
     - **Replace `<password>` with your database user's password.**
-    - Add this to your `.env` file as `MONGO_URI`.
+    - Add this to your `.env` file as `MONGODB_URI`.
 
 ---
 
@@ -913,7 +926,7 @@ sample_texts = [
 ]
 
 print("Generating embeddings with Voyage-AI...")
-response = vo.embed(texts=sample_texts, model="voyage-large-2", input_type="document")
+response = vo.embed(texts=sample_texts, model="voyage-3-large", input_type="document")
 embeddings = response.embeddings
 print(f"Generated {len(embeddings)} embeddings.")
 ```
@@ -925,9 +938,13 @@ print(f"Generated {len(embeddings)} embeddings.")
 - Connect to MongoDB Atlas.
 - Insert each text chunk along with its generated embedding into a collection.
 
+---
+
+## Lab 2: Step 3: Store in MongoDB (Continue)
+
 ```python
-mongo_uri = os.environ.get("MONGO_URI")
-client = MongoClient(mongo_uri)
+MONGODB_URI = os.environ.get("MONGODB_URI")
+client = MongoClient(MONGODB_URI)
 db = client['rag_db']
 collection = db['documents']
 
@@ -979,7 +996,7 @@ client.close()
 }
 ```
 
-- Replace `numDimensions` with the actual dimension of your Voyage-AI embeddings (e.g., 1536 for voyage-large-2).
+- Replace `numDimensions` with the actual dimension of your Voyage-AI embeddings (e.g., 1536 for voyage-3-large).
 
 ---
 
@@ -1010,7 +1027,7 @@ User Query: {query_text}")
 print("Generating query embedding with Voyage-AI...")
 query_embedding_response = vo.embed(
     texts=[query_text],
-    model="voyage-large-2",
+    model="voyage-3-large",
     input_type="query" # Important for query embeddings
 )
 query_embedding = query_embedding_response.embeddings[0]
@@ -1022,7 +1039,7 @@ print("Query embedding generated.")
 ## Lab 3: Step 2: MongoDB Vector Search
 
 ```python
-client = MongoClient(os.environ.get("MONGO_URI"))
+client = MongoClient(os.environ.get("MONGODB_URI"))
 db = client['rag_db']
 collection = db['documents']
 
@@ -1057,10 +1074,8 @@ client.close()
 ## Lab 3: Step 3: Retrieving Top Results & Building Context
 
 ```python
-context = "
-".join([doc['text_chunk'] for doc in results])
-print("
---- Retrieved Context ---")
+context = "".join([doc['text_chunk'] for doc in results])
+print("--- Retrieved Context ---")
 print(context)
 print("------------------------")
 ```
@@ -1085,25 +1100,10 @@ Question: {query_text}
 
 Answer:
 """
-
-print("
---- LLM Prompt ---")
+print("--- LLM Prompt ---")
 print(llm_prompt)
 print("------------------")
 
-# This is where you would make your actual LLM API call
-# For example, with OpenAI:
-# from openai import OpenAI
-# client_openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
-# completion = client_openai.chat.completions.create(
-#     model="gpt-3.5-turbo",
-#     messages=[
-#         {"role": "user", "content": llm_prompt}
-#     ]
-# )
-# llm_response = completion.choices[0].message.content
-# print(f"
-LLM Response: {llm_response}")
 ```
 
 ---
@@ -1121,22 +1121,19 @@ from pymongo import MongoClient
 load_dotenv()
 
 # Initialize Voyage-AI Client
-vo = voyageai.Client(api_key=os.environ.get("VOYAGE_API_KEY"))
+vo = voyageai.Client(api_key=os.environ.get("VOYAGEAI_API_KEY"))
 
 # Initialize MongoDB Client
-mongo_uri = os.environ.get("MONGO_URI")
-client = MongoClient(mongo_uri)
+MONGODB_URI = os.environ.get("MONGODB_URI")
+client = MongoClient(MONGODB_URI)
 db = client['rag_db']
 collection = db['documents']
-
-# Initialize LLM Client (e.g., OpenAI)
-# client_openai = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def run_rag_query(query_text: str):
     # 1. Embed the user query
     query_embedding_response = vo.embed(
         texts=[query_text],
-        model="voyage-large-2",
+        model="voyage-3-large",
         input_type="query"
     )
     query_embedding = query_embedding_response.embeddings[0]
@@ -1157,8 +1154,7 @@ def run_rag_query(query_text: str):
     results = list(collection.aggregate(pipeline))
 
     # 3. Build context for the LLM
-    context = "
-".join([doc['text_chunk'] for doc in results])
+    context = "".join([doc['text_chunk'] for doc in results])
     if not context:
         return "Sorry, I couldn't find relevant information in my knowledge base."
 
@@ -1185,9 +1181,7 @@ def run_rag_query(query_text: str):
 if __name__ == "__main__":
     test_query = "What are the latest security features?"
     response = run_rag_query(test_query)
-    print(f"
-Final RAG Response: {response}")
-
+    print(f"Final RAG Response: {response}")
     client.close()
 ```
 
@@ -1213,12 +1207,12 @@ Final RAG Response: {response}")
 def run_rag_query_with_rerank(query_text: str):
     # 1. Embed the user query
     query_embedding_response = vo.embed(
-        texts=[query_text], model="voyage-large-2", input_type="query"
+        texts=[query_text], model="voyage-3-large", input_type="query"
     )
     query_embedding = query_embedding_response.embeddings[0]
 
     # 2. Perform initial vector search (retrieve more candidates)
-    client = MongoClient(os.environ.get("MONGO_URI"))
+    client = MongoClient(os.environ.get("MONGODB_URI"))
     db = client['rag_db']
     collection = db['documents']
     pipeline = [
@@ -1363,15 +1357,10 @@ Final RAG Response (with Reranking): {reranked_response}")
 
 ## Further Learning Resources
 
-- **MongoDB Developer Center:** docs.mongodb.com/realm/developer/
-- **Voyage-AI Documentation:** docs.voyageai.com
+- **MongoDB Developer Center:** [https://www.mongodb.com/resources/](https://www.mongodb.com/resources)
+- **Voyage-AI Documentation:** [https://docs.voyageai.com](https://docs.voyageai.com)
 - **LangChain / LlamaIndex:** Frameworks for building RAG applications.
 - **Online Courses/Tutorials:** Keep learning and building!
-
----
-
-<!-- _class: heading -->
-# Q&A / Open Discussion
 
 ---
 
@@ -1380,9 +1369,3 @@ Final RAG Response (with Reranking): {reranked_response}")
 - RAG is a powerful paradigm for building intelligent, data-aware AI applications.
 - MongoDB Atlas and Voyage-AI provide a robust stack for this.
 - Start building, experiment, and contribute to the AI community!
-
----
-
-<!-- _class: lead -->
-
-# Thank You!
